@@ -1,27 +1,27 @@
-import { Request, Response, NextFunction } from "express"
-import { verify } from "jsonwebtoken"
-import IUserTokenPayload from "../interfaces/IUserTokenPayload"
+import { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 
-const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  const SECRET_KEY = process.env.JWT_SECRET!
-  const header = req.headers.authorization
+const JWT_SECRET = process.env.JWT_SECRET || "secretdev";
 
-  if (!header) {
-    return res.status(401).json({ succes: false, error: "El token es requerido" })
-  }
-
-  const token = header.split(" ")[1]
-
-  try {
-    const payload = verify(token, SECRET_KEY);
-
-    req.user = payload as IUserTokenPayload
-
-    next()
-  } catch (e) {
-    const error = e as Error
-    res.status(401).json({ succes: false, error: error.message })
-  }
+export interface IUserPayload {
+  userId: string;
+  email: string;
+  role?: string;
 }
+
+export const authMiddleware = (req: Request & { user?: IUserPayload }, res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ message: "Missing token" });
+  const parts = authHeader.split(" ");
+  if (parts.length !== 2) return res.status(401).json({ message: "Invalid token format" });
+  const token = parts[1];
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as IUserPayload;
+    req.user = payload;
+    return next();
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid token" });
+  }
+};
 
 export default authMiddleware 

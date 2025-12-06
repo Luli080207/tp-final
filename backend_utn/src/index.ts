@@ -5,7 +5,7 @@ import cors from "cors";
 import morgan from "morgan";
 import connectDB from "./config/mongodb";
 import router from "./routes";
-import { errorHanndler } from "./middleware/error.middleware";
+import { errorHandler } from "./middleware/errorMiddleware";
 
 dotenv.config();
 

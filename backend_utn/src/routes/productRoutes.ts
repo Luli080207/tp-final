@@ -1,21 +1,25 @@
-// EL ROUTER VALIDA METODOS Y RUTAS PROPIAS DE LA ENTIDAD
+import { Router } from "express";
+import * as productCtrl from "../controllers/productController";
+import { authMiddleware } from "../middleware/authMiddleware";
+import { zodValidate } from "../middleware/zodVidateMiddleware";
+import { z } from "zod";
 
-// GET http://localhost:3000/product
+const router = Router();
 
-import { Router } from "express"
-import ProductController from "../controllers/productController"
-import authMiddleware from "../middleware/authMiddleware"
-import upload from "../middleware/uploadMiddleware"
+router.get("/", productCtrl.list);
+router.get("/;id", productCtrl.getOne);
 
-const productRouter = Router()
+const productCreateSchema = z.object({
+  name: z.string().min(1),
+  category: z.string().optional(),
+  price: z.number().positive(),
+  description: z.string().optional(),
+  image: z.string().optional(),
+});
 
-// TODAS LAS PETICIONES QUE LLEGAN AL PRODUCTROUTER EMPIEZAN CON
-// POST http://localhost:3000/products/
+router.post("/", authMiddleware, zodValidate(productCreateSchema), productCtrl.create);
+router.put("/:id", authMiddleware, zodValidate(productCreateSchema.partial()), productCtrl.update);
+router.delete("/:id", authMiddleware, productCtrl.remove);
 
-productRouter.get("/", ProductController.getAllProducts)
-productRouter.get("/:id", ProductController.getProduct)
-productRouter.post("/", authMiddleware, upload.single("image"), ProductController.addProduct)
-productRouter.patch("/:id", authMiddleware, ProductController.updateProduct)
-productRouter.delete("/:id", authMiddleware, ProductController.deleteProduct)
 
-export default productRouter
+export default router;
