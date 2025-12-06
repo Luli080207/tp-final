@@ -1,55 +1,36 @@
-// LEVANTAR NUESTRO SERIVICIO Y CONFIGURACIONES GLOBALES
-import express, { Request, Response } from "express"
-import cors from "cors"
-import connectDB from "./config/mongodb"
-import productRouter from "./routes/productRoutes"
-import authRouter from "./routes/authRouter"
-import morgan from "morgan"
-import IUserTokenPayload from "./interfaces/IUserTokenPayload"
-import dotenv from "dotenv"
-import logger from "./config/logger"
-import path from "node:path"
-import emailService from "./services/emailService"
+import express from "express";
+import dotenv from "dotenv";
+import helmet from "helmet";
+import cors from "cors";
+import morgan from "morgan";
+import connectDB from "./config/mongodb";
+import router from "./routes";
+import { errorHanndler } from "./middleware/error.middleware";
 
-dotenv.config()
+dotenv.config();
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: IUserTokenPayload
-    }
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(helmet());
+app.use(cors());
+app.use(express.json());
+app.use(morgan(":method :url :status - :response-time ms"));
+
+app.use("/api", router);
+
+app.use(errorHandler);
+
+const start = async () => {
+  try {
+    await connectDB();
+    app.listen(PORT, () => {
+      console.log(`Servidor en escucha en el puerto http://localhost:${PORT}`);
+    });
+  } catch (err) {
+    console.error("Error arrancando la app:", err);
+    process.exit(1);
   }
-}
+};
 
-const PORT = process.env.PORT
-const app = express()
-
-app.use(cors())
-app.use(express.json())
-app.use(logger)
-
-app.use("/uploads", express.static(path.join(__dirname, "../uploads")))
-
-app.use(morgan("dev"))
-
-app.get("/", (__: Request, res: Response) => {
-  res.json({ status: true })
-})
-
-app.use("/auth", authRouter)
-// http://localhost:3000/products?
-app.use("/products", productRouter)
-
-// enviar correo electrónico
-app.post("/email/send", emailService)
-
-// endpoint para el 404 - no se encuentra el recurso
-app.use((__, res) => {
-  res.status(404).json({ success: false, error: "El recurso no se encuentra" })
-})
-
-// servidor en escucha
-app.listen(PORT, () => {
-  console.log(`✅ Servidor en escucha en el puerto http://localhost:${PORT}`)
-  connectDB()
-})
+start();
